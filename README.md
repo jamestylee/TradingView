@@ -53,7 +53,7 @@ The file `Stochastic & RSI Combo with Scaled MACD and PNL Tracker.txt` is the fi
     *   **Momentum-Sensing Bars:** The MACD histogram bars are **solid** when momentum is decreasing and **hollow** when momentum is increasing, offering an immediate view of momentum shifts.
 
 *   **Integrated Info & PNL Tables:**
-    *   **Mini PNL Tracker:** Track up to **3 manual positions** in a compact table. It displays your Label, Direction, Entry, Current Price, PNL ($), and Distance to Liquidation %.
+    *   **Mini PNL Tracker:** Track up to **6 manual positions** in a compact table. It displays your Label, Direction, Entry, Current Price, PNL ($), and Distance to Liquidation %.
     *   **Info Panel:** A separate small table shows real-time ATR, ADX, and RSI values.
     *   **Master Toggle:** A single checkbox in the settings allows you to **turn all tables on or off** for a completely clean view of the oscillators.
 
