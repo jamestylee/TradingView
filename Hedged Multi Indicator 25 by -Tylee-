@@ -1,0 +1,483 @@
+//@version=6
+
+indicator('Hedged Multi Indicator 25 by -Tylee-', overlay = true)
+
+// ✅ INPUTS MUST BE HERE:
+btcSymbol = input.symbol("BINANCE:BTCUSDT", title="BTC Symbol for PNL") // New input
+userSymbol     = input.string("BTC 10x", title="📝 Symbol Leverage (Display Label Only)")
+executionPrice = input.float(100.0, title="💲 Execution Price (User Input)", step=0.01)
+positionSize   = input.float(1.0, title="📦 Position Size (Shares/Contracts)")
+liqPrice       = input.float(100.0, title="Current Liquidation Price", step=0.01)
+//finalDip       = input.float(100.0, title="💲 Final DCA Order Price (User Input)", step=0.01)
+userSymbolShort     = input.string("BTC 10x Short", title="📝 Symbol Leverage (Short - Display Label Only)")
+executionPriceShort = input.float(100.0, title="💲 Execution Price (Short)", step=0.01)
+positionSizeShort   = input.float(1.0, title="📦 Position Size (Short - Shares/Contracts)")
+liqPriceShort       = input.float(100.0, title="Current Liquidation Price (Short)", step=0.01)
+//finalDipShort       = input.float(100.0, title="💲 Final DCA Order Price (Short)", step=0.01)
+
+//BB
+length = input.int(20, minval = 1)
+maType = input.string('SMA', 'Basis MA Type', options = ['SMA', 'EMA', 'SMMA (RMA)', 'WMA', 'VWMA'])
+src = input(close, title = 'Source')
+mult = input.float(2.0, minval = 0.001, maxval = 50, title = 'StdDev')
+
+ma(source, length, _type) =>
+    switch _type
+        'SMA' => ta.sma(source, length)
+        'EMA' => ta.ema(source, length)
+        'SMMA (RMA)' => ta.rma(source, length)
+        'WMA' => ta.wma(source, length)
+        'VWMA' => ta.vwma(source, length)
+
+basis = ma(src, length, maType)
+dev = mult * ta.stdev(src, length)
+upper = basis + dev
+lower = basis - dev
+offset = input.int(0, 'Offset', minval = -500, maxval = 500, display = display.data_window)
+plot(basis, 'Basis', color = #FF6D00, offset = offset)
+p1 = plot(upper, 'Upper', color = #2962FF, offset = offset)
+p2 = plot(lower, 'Lower', color = #2962FF, offset = offset)
+fill(p1, p2, title = 'Background', color = color.rgb(51, 158, 246, 100))
+
+//Ichi Clouds
+conversionPeriods = input.int(9, minval = 1, title = 'Conversion Line Length')
+basePeriods = input.int(26, minval = 1, title = 'Base Line Length')
+laggingSpan2Periods = input.int(52, minval = 1, title = 'Leading Span B Length')
+displacement = input.int(26, minval = 1, title = 'Lagging Span')
+donchian(len) =>
+    math.avg(ta.lowest(len), ta.highest(len))
+conversionLine = donchian(conversionPeriods)
+baseLine = donchian(basePeriods)
+leadLine1 = math.avg(conversionLine, baseLine)
+leadLine2 = donchian(laggingSpan2Periods)
+//plot(conversionLine, color=#2962FF, title="Conversion Line")
+//plot(baseLine, color=#B71C1C, title="Base Line")
+//plot(close, offset = -displacement + 1, color=#43A047, title="Lagging Span")
+p3 = plot(leadLine1, offset = displacement - 1, color = #7ae27e, title = 'Leading Span A')
+p4 = plot(leadLine2, offset = displacement - 1, color = #f56d6d, title = 'Leading Span B')
+plot(leadLine1 > leadLine2 ? leadLine1 : leadLine2, offset = displacement - 1, title = 'Kumo Cloud Upper Line', display = display.none)
+plot(leadLine1 < leadLine2 ? leadLine1 : leadLine2, offset = displacement - 1, title = 'Kumo Cloud Lower Line', display = display.none)
+fill(p3, p4, color = leadLine1 > leadLine2 ? color.rgb(67, 160, 72, 65) : color.rgb(244, 67, 54, 72))
+
+// Fast MA
+maFastSource = input(defval = close, title = 'Fast MA Source')
+maFastLength = input.int(defval = 50, title = 'Fast MA Period', minval = 1)
+
+// Slowest MA
+maSlowestSource = input(defval = close, title = 'Slow MA Source')
+maSlowestLength = input.int(defval = 200, title = 'Slow MA Period', minval = 1)
+
+// Mid MA
+maMidsource = input(defval = close, title = 'Mid MA Source')
+maMidLength = input.int(defval = 100, title = 'Mid MA Period', minval = 1)
+
+fastMA = ta.ema(maFastSource, maFastLength)
+slowestMA = ta.ema(maSlowestSource, maSlowestLength)
+mediumMA = ta.ema(maMidsource, maMidLength)
+
+// Plot
+plot(fastMA, color = color.new(color.lime, 0), linewidth = 2)
+plot(slowestMA, color = color.new(color.red, 0), linewidth = 2)
+plot(mediumMA, color = color.rgb(227, 238, 22), linewidth = 2)
+
+// Cross
+plot(ta.cross(fastMA, slowestMA) ? fastMA : na, style = plot.style_cross, linewidth = 6, color = slowestMA > fastMA ? color.red : color.green, editable = true)
+
+// Create a variable to check for Golden Cross
+isGoldenCross = ta.crossover(fastMA, slowestMA)
+
+// Create a variable to check for Death Cross
+isDeathCross = ta.crossunder(fastMA, slowestMA)
+
+// Create a variable to check for crossunder and close below fastMA
+isCrossunderBelowFastMA = ta.crossunder(close, fastMA)
+
+// Create a variable to check for crossover and close above fastMA
+isCrossoverAboveFastMA = ta.crossover(close, fastMA)
+
+// Create a variable to check for crossunder and close below slowestMA
+isCrossunderBelowSlowestMA = ta.crossunder(close, slowestMA)
+
+// Create a variable to check if SlowestMA is below FastMA
+isSlowestMABelowFastMA = slowestMA < fastMA
+
+// Trailing Stops
+trailPercent = input.float(1, title = 'Trailing Stop Percentage', minval = 0.1, maxval = 5, step = 0.1)
+takeProfitPercent = input.float(1, title = 'Take Profit Percentage', minval = 0.1, maxval = 5, step = 0.1)
+
+trailingStopLevel = close[1] * (1 - trailPercent / 100)
+takeProfitLevel = close[1] * (1 + takeProfitPercent / 100)
+
+var line trailingStopLine = na
+if na(trailingStopLine)
+    trailingStopLine := line.new(na, na, na, na, width = 2, color = color.rgb(241, 234, 234))
+    trailingStopLine
+
+line.set_xy1(trailingStopLine, bar_index[1], trailingStopLevel)
+line.set_xy2(trailingStopLine, bar_index, trailingStopLevel)
+
+var line takeProfitLine = na
+if na(takeProfitLine)
+    takeProfitLine := line.new(na, na, na, na, width = 2, color = color.rgb(151, 244, 58))
+    takeProfitLine
+
+line.set_xy1(takeProfitLine, bar_index[1], takeProfitLevel)
+line.set_xy2(takeProfitLine, bar_index, takeProfitLevel)
+
+belowTrailingStop = low <= trailingStopLevel
+aboveTakeProfit = high >= takeProfitLevel
+
+//Fib Retracement
+devTooltip = 'Deviation is a multiplier that affects how much the price should deviate from the previous pivot in order for the bar to become a new pivot.'
+depthTooltip = 'The minimum number of bars that will be taken into account when calculating the indicator.'
+// pivots threshold
+threshold_multiplier = input.float(title = 'Deviation', defval = 3, minval = 0, tooltip = devTooltip)
+depth = input.int(title = 'Depth', defval = 10, minval = 2, tooltip = depthTooltip)
+reverse = input(false, 'Reverse')
+var extendLeft = input(false, 'Extend Left    |    Extend Right', inline = 'Extend Lines')
+var extendRight = input(true, '', inline = 'Extend Lines')
+var extending = extend.none
+if extendLeft and extendRight
+    extending := extend.both
+    extending
+if extendLeft and not extendRight
+    extending := extend.left
+    extending
+if not extendLeft and extendRight
+    extending := extend.right
+    extending
+prices = input(true, 'Show Prices')
+levels = input(true, 'Show Levels', inline = 'Levels')
+levelsFormat = input.string('Values', '', options = ['Values', 'Percent'], inline = 'Levels')
+labelsPosition = input.string('Left', 'Labels Position', options = ['Left', 'Right'])
+var int backgroundTransparency = input.int(98, 'Background Transparency', minval = 0, maxval = 100)
+
+import TradingView/ZigZag/7 as zigzag
+
+update() =>
+    var settings = zigzag.Settings.new(threshold_multiplier, depth, color(na), false, false, false, false, 'Absolute', true)
+    var zigzag.ZigZag zigZag = zigzag.newInstance(settings)
+    var zigzag.Pivot lastP = na
+    var float startPrice = na
+    var float height = na
+    settings.devThreshold := ta.atr(10) / close * 100 * threshold_multiplier
+    if zigZag.update()
+        lastP := zigZag.lastPivot()
+        if not na(lastP)
+            var line lineLast = na
+            if na(lineLast)
+                lineLast := line.new(lastP.start, lastP.end, xloc = xloc.bar_time, color = color.gray, width = 1, style = line.style_dashed)
+                lineLast
+            else
+                line.set_first_point(lineLast, lastP.start)
+                line.set_second_point(lineLast, lastP.end)
+
+            startPrice := reverse ? lastP.start.price : lastP.end.price
+            endPrice = reverse ? lastP.end.price : lastP.start.price
+            height := (startPrice > endPrice ? -1 : 1) * math.abs(startPrice - endPrice)
+            height
+    [lastP, startPrice, height]
+
+[lastP, startPrice, height] = update()
+
+_draw_line(price, col) =>
+    var id = line.new(lastP.start.time, lastP.start.price, time, price, xloc = xloc.bar_time, color = col, width = 1, extend = extending)
+    line.set_xy1(id, lastP.start.time, price)
+    line.set_xy2(id, lastP.end.time, price)
+    id
+
+
+_draw_label(price, txt, txtColor) =>
+    x = labelsPosition == 'Left' ? lastP.start.time : not extendRight ? lastP.end.time : time
+    labelStyle = labelsPosition == 'Left' ? label.style_label_right : label.style_label_left
+    align = labelsPosition == 'Left' ? text.align_right : text.align_left
+    labelsAlignStrLeft = txt + '\n ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏ \n'
+    labelsAlignStrRight = '       ' + txt + '\n ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏  ‏ \n'
+    labelsAlignStr = labelsPosition == 'Left' ? labelsAlignStrLeft : labelsAlignStrRight
+    var id = label.new(x = x, y = price, xloc = xloc.bar_time, text = labelsAlignStr, textcolor = txtColor, style = labelStyle, textalign = align, color = #00000000)
+    label.set_xy(id, x, price)
+    label.set_text(id, labelsAlignStr)
+    label.set_textcolor(id, txtColor)
+
+_wrap(txt) =>
+    '(' + str.tostring(txt, format.mintick) + ')'
+
+_label_txt(level, price) =>
+    l = levelsFormat == 'Values' ? str.tostring(level) : str.tostring(level * 100) + '%'
+    (levels ? l : '') + (prices ? _wrap(price) : '')
+
+_crossing_level(series float sr, series float r) =>
+    r > sr and r < sr[1] or r < sr and r > sr[1]
+
+processLevel(bool show, float value, color colorL, line lineIdOther) =>
+    float m = value
+    r = startPrice + height * m
+    crossed = _crossing_level(close, r)
+    if show and not na(lastP)
+        lineId = _draw_line(r, colorL)
+        _draw_label(r, _label_txt(m, r), colorL)
+        if crossed
+            alert('Autofib: ' + syminfo.ticker + ' crossing level ' + str.tostring(value))
+        if not na(lineIdOther)
+            linefill.new(lineId, lineIdOther, color = color.new(colorL, backgroundTransparency))
+        lineId
+    else
+        lineIdOther
+
+show_0 = input(true, '', inline = 'Level0')
+value_0 = input(0, '', inline = 'Level0')
+color_0 = input(#787b86, '', inline = 'Level0')
+
+show_0_236 = input(true, '', inline = 'Level0')
+value_0_236 = input(0.236, '', inline = 'Level0')
+color_0_236 = input(#f44336, '', inline = 'Level0')
+
+show_0_382 = input(true, '', inline = 'Level1')
+value_0_382 = input(0.382, '', inline = 'Level1')
+color_0_382 = input(#81c784, '', inline = 'Level1')
+
+show_0_5 = input(true, '', inline = 'Level1')
+value_0_5 = input(0.5, '', inline = 'Level1')
+color_0_5 = input(#4caf50, '', inline = 'Level1')
+
+show_0_618 = input(true, '', inline = 'Level2')
+value_0_618 = input(0.618, '', inline = 'Level2')
+color_0_618 = input(#009688, '', inline = 'Level2')
+
+show_0_65 = input(false, '', inline = 'Level2')
+value_0_65 = input(0.65, '', inline = 'Level2')
+color_0_65 = input(#009688, '', inline = 'Level2')
+
+show_0_786 = input(true, '', inline = 'Level3')
+value_0_786 = input(0.786, '', inline = 'Level3')
+color_0_786 = input(#64b5f6, '', inline = 'Level3')
+
+show_1 = input(true, '', inline = 'Level3')
+value_1 = input(1, '', inline = 'Level3')
+color_1 = input(#787b86, '', inline = 'Level3')
+
+show_1_272 = input(false, '', inline = 'Level4')
+value_1_272 = input(1.272, '', inline = 'Level4')
+color_1_272 = input(#81c784, '', inline = 'Level4')
+
+show_1_414 = input(false, '', inline = 'Level4')
+value_1_414 = input(1.414, '', inline = 'Level4')
+color_1_414 = input(#f44336, '', inline = 'Level4')
+
+show_1_618 = input(true, '', inline = 'Level5')
+value_1_618 = input(1.618, '', inline = 'Level5')
+color_1_618 = input(#2962ff, '', inline = 'Level5')
+
+show_1_65 = input(false, '', inline = 'Level5')
+value_1_65 = input(1.65, '', inline = 'Level5')
+color_1_65 = input(#2962ff, '', inline = 'Level5')
+
+show_2_618 = input(true, '', inline = 'Level6')
+value_2_618 = input(2.618, '', inline = 'Level6')
+color_2_618 = input(#f44336, '', inline = 'Level6')
+
+show_2_65 = input(false, '', inline = 'Level6')
+value_2_65 = input(2.65, '', inline = 'Level6')
+color_2_65 = input(#f44336, '', inline = 'Level6')
+
+show_3_618 = input(true, '', inline = 'Level7')
+value_3_618 = input(3.618, '', inline = 'Level7')
+color_3_618 = input(#9c27b0, '', inline = 'Level7')
+
+show_3_65 = input(false, '', inline = 'Level7')
+value_3_65 = input(3.65, '', inline = 'Level7')
+color_3_65 = input(#9c27b0, '', inline = 'Level7')
+
+show_4_236 = input(true, '', inline = 'Level8')
+value_4_236 = input(4.236, '', inline = 'Level8')
+color_4_236 = input(#e91e63, '', inline = 'Level8')
+
+show_4_618 = input(false, '', inline = 'Level8')
+value_4_618 = input(4.618, '', inline = 'Level8')
+color_4_618 = input(#81c784, '', inline = 'Level8')
+
+show_neg_0_236 = input(false, '', inline = 'Level9')
+value_neg_0_236 = input(-0.236, '', inline = 'Level9')
+color_neg_0_236 = input(#f44336, '', inline = 'Level9')
+
+show_neg_0_382 = input(false, '', inline = 'Level9')
+value_neg_0_382 = input(-0.382, '', inline = 'Level9')
+color_neg_0_382 = input(#81c784, '', inline = 'Level9')
+
+show_neg_0_618 = input(false, '', inline = 'Level10')
+value_neg_0_618 = input(-0.618, '', inline = 'Level10')
+color_neg_0_618 = input(#009688, '', inline = 'Level10')
+
+show_neg_0_65 = input(false, '', inline = 'Level10')
+value_neg_0_65 = input(-0.65, '', inline = 'Level10')
+color_neg_0_65 = input(#009688, '', inline = 'Level10')
+
+
+lineId0 = processLevel(show_neg_0_65, value_neg_0_65, color_neg_0_65, line(na))
+lineId1 = processLevel(show_neg_0_618, value_neg_0_618, color_neg_0_618, lineId0)
+lineId2 = processLevel(show_neg_0_382, value_neg_0_382, color_neg_0_382, lineId1)
+lineId3 = processLevel(show_neg_0_236, value_neg_0_236, color_neg_0_236, lineId2)
+lineId4 = processLevel(show_0, value_0, color_0, lineId3)
+lineId5 = processLevel(show_0_236, value_0_236, color_0_236, lineId4)
+lineId6 = processLevel(show_0_382, value_0_382, color_0_382, lineId5)
+lineId7 = processLevel(show_0_5, value_0_5, color_0_5, lineId6)
+lineId8 = processLevel(show_0_618, value_0_618, color_0_618, lineId7)
+lineId9 = processLevel(show_0_65, value_0_65, color_0_65, lineId8)
+lineId10 = processLevel(show_0_786, value_0_786, color_0_786, lineId9)
+lineId11 = processLevel(show_1, value_1, color_1, lineId10)
+lineId12 = processLevel(show_1_272, value_1_272, color_1_272, lineId11)
+lineId13 = processLevel(show_1_414, value_1_414, color_1_414, lineId12)
+lineId14 = processLevel(show_1_618, value_1_618, color_1_618, lineId13)
+lineId15 = processLevel(show_1_65, value_1_65, color_1_65, lineId14)
+lineId16 = processLevel(show_2_618, value_2_618, color_2_618, lineId15)
+lineId17 = processLevel(show_2_65, value_2_65, color_2_65, lineId16)
+lineId18 = processLevel(show_3_618, value_3_618, color_3_618, lineId17)
+lineId19 = processLevel(show_3_65, value_3_65, color_3_65, lineId18)
+lineId20 = processLevel(show_4_236, value_4_236, color_4_236, lineId19)
+lineId21 = processLevel(show_4_618, value_4_618, color_4_618, lineId20)
+
+// © FriendOfTheTrend
+//Directions
+directions = input.bool(true, title = 'If you change the Place On The List number, you can reorder the indicators to suit your preferences. Make sure that you change the position number for BOTH indicators for it to show up properly. For example: If you change MACD to position 3, make sure to change whatever indicator is in position 3 to the number that the MACD was before so they switch places(do this even if one of them is turned off). You can also turn off each individual indicator so it only shows the ones you want.')
+
+//Table On/Off
+infoDataTableOn = input.bool(true, title = 'Indicator Directions Table On/Off', group = 'Info Tables')
+
+//Table Positions
+bright = position.bottom_right
+bleft = position.bottom_left
+bcenter = position.bottom_center
+tright = position.top_right
+tleft = position.top_left
+tcenter = position.top_center
+mright = position.middle_right
+mleft = position.middle_left
+mcenter = position.middle_center
+itablePosition = input.string(tright, title = 'Indicator Table Position', options = [bright, bleft, bcenter, tright, tleft, tcenter, mright, mleft, mcenter], group = 'Info Tables')
+
+//Lengths
+vortexOn = input.bool(true, title = 'Turn Vortex Label On/Off', group = 'Vortex Settings')
+vortexOrder = input.int(3, title = 'Place On The List', minval = 1, maxval = 9, group = 'Vortex Settings')
+vortexLength = input.int(14, title = 'Vortex Length', minval = 2, group = 'Vortex Settings')
+momOn = input.bool(true, title = 'Turn Momentum Label On/Off', group = 'Momentum Settings')
+momOrder = input.int(4, title = 'Place On The List', minval = 1, maxval = 9, group = 'Momentum Settings')
+momLength = input.int(14, title = 'Momentum Length', minval = 2, group = 'Momentum Settings')
+dmiOn = input.bool(true, title = 'Turn DMI Label On/Off', group = 'DMI Settings')
+dmiOrder = input.int(7, title = 'Place On The List', minval = 1, maxval = 9, group = 'DMI Settings')
+dmiLength = input.int(14, title = 'DMI Length', minval = 2, group = 'DMI Settings')
+dmiSmooth = input.int(14, title = 'DMI Smoothing', minval = 2, group = 'DMI Settings')
+mfiOn = input.bool(true, title = 'Turn Money Flow Index Label On/Off', group = 'Money Flow Index Settings')
+mfiOrder = input.int(8, title = 'Place On The List', minval = 1, maxval = 9, group = 'Money Flow Index Settings')
+mfiLength = input.int(14, title = 'Money Flow Index Length', minval = 2, group = 'Money Flow Index Settings')
+
+//Vortex
+VMP = math.sum(math.abs(high - low[1]), vortexLength)
+VMM = math.sum(math.abs(low - high[1]), vortexLength)
+STR = math.sum(ta.atr(1), vortexLength)
+VIP = VMP / STR
+VIM = VMM / STR
+
+//DMI
+[diplus, diminus, adx] = ta.dmi(dmiLength, dmiSmooth)
+
+//Momentum
+mom = ta.mom(close, momLength)
+
+//Money Flow Index
+mfi = ta.mfi(close, mfiLength)
+
+//Create Vortex indicator label table data
+vortexIndicatorLabel = 'Vortex Neutral'
+vortexLabel = color.blue
+if VIP > VIM
+    vortexLabel := color.lime
+    vortexIndicatorLabel := 'Vortex Bullish'
+    vortexIndicatorLabel
+else if VIP < VIM
+    vortexLabel := color.red
+    vortexIndicatorLabel := 'Vortex Bearish'
+    vortexIndicatorLabel
+
+//Create MFI indicator label table data
+mfiIndicatorLabel = 'MFI Neutral'
+mfiLabel = color.blue
+if mfi > mfi[1]
+    mfiLabel := color.lime
+    mfiIndicatorLabel := 'MFI Bullish'
+    mfiIndicatorLabel
+else if mfi < mfi[1]
+    mfiLabel := color.red
+    mfiIndicatorLabel := 'MFI Bearish'
+    mfiIndicatorLabel
+
+//Create DMI indicator label table data
+dmiIndicatorLabel = 'DMI Neutral'
+dmiLabel = color.blue
+if diplus > diminus
+    dmiLabel := color.lime
+    dmiIndicatorLabel := 'DMI Bullish'
+    dmiIndicatorLabel
+else if diplus < diminus
+    dmiLabel := color.red
+    dmiIndicatorLabel := 'DMI Bearish'
+    dmiIndicatorLabel
+
+//Create Momentum indicator label table data
+momIndicatorLabel = 'Momentum Neutral'
+momLabel = color.blue
+if mom > mom[1]
+    momLabel := color.lime
+    momIndicatorLabel := 'Momentum Bullish'
+    momIndicatorLabel
+else if mom < mom[1]
+    momLabel := color.red
+    momIndicatorLabel := 'Momentum Bearish'
+    momIndicatorLabel
+
+// === Real-Time PnL Calculation ===
+btcPrice = request.security(btcSymbol, timeframe.period, close)
+
+currentPrice      = btcPrice
+realizedPnL       = (currentPrice - executionPrice) * positionSize
+
+// === Real-Time PnL Calculation for Short ===
+currentPriceShort = btcPrice
+realizedPnLShort  = (executionPriceShort - currentPriceShort) * positionSizeShort
+
+// === Combined Real-Time PnL Calculation ===
+totalRealizedPnL = realizedPnL + realizedPnLShort
+
+// === Define Row Order for Custom Entries ===
+userSymbolOrder   = 7
+execPriceOrder    = 9
+pnlOrder          = 10
+liqPriceOrder     = 11
+//finalDipOrder     = 12
+liqPriceShortOrder = 17
+//finalDipShortOrder = 16
+execPriceShortOrder = 15
+pnlShortOrder = 16
+totalPnlRow = 18
+
+//Plot Price Difference Table
+infoDataTable = table.new(itablePosition, columns = 1, rows = 22)
+if infoDataTableOn and barstate.islast
+    table.cell(table_id = infoDataTable, column = 0, row = 0, text = 'Indicator Directions', height = 0, text_color = color.white, text_halign = text.align_left, text_valign = text.align_top, bgcolor = color.purple)
+    table.cell(table_id = infoDataTable, column = 0, row = mfiOrder, text = mfiOn ? mfiIndicatorLabel : na, height = 0, text_color = color.white, text_halign = text.align_left, text_valign = text.align_top, bgcolor = mfiLabel)
+    table.cell(table_id = infoDataTable, column = 0, row = dmiOrder, text = dmiOn ? dmiIndicatorLabel : na, height = 0, text_color = color.white, text_halign = text.align_left, text_valign = text.align_top, bgcolor = dmiLabel)
+    table.cell(table_id = infoDataTable, column = 0, row = momOrder, text = momOn ? momIndicatorLabel : na, height = 0, text_color = color.white, text_halign = text.align_left, text_valign = text.align_top, bgcolor = momLabel)
+    table.cell(table_id = infoDataTable, column = 0, row = vortexOrder, text = vortexOn ? vortexIndicatorLabel : na, height = 0, text_color = color.white, text_halign = text.align_left, text_valign = text.align_top, bgcolor = vortexLabel)
+    //table.cell(table_id = infoDataTable, column = 0, row = 8, text = 'LONG:', height = 0, text_color = color.white, text_halign = text.align_left, text_valign = text.align_top, bgcolor = color.rgb(102, 196, 34))
+if infoDataTableOn and barstate.islast
+    // LONG Position display (original)
+    table.cell(table_id = infoDataTable, column = 0, row = liqPriceOrder,  text = "Liq. Price: $" + str.tostring(liqPrice, "#.##"),      height = 0, text_color = color.white, text_halign = text.align_left, text_valign = text.align_top, bgcolor = color.orange)
+    //table.cell(table_id = infoDataTable, column = 0, row = 14, text = 'SHORT:', height = 0, text_color = color.white, text_halign = text.align_left, text_valign = text.align_top, bgcolor = color.rgb(176, 37, 37))
+    table.cell(table_id = infoDataTable, column = 0, row = execPriceOrder,  text = "Long: $" + str.tostring(executionPrice, "#.##"),  height = 0, text_color = color.white, text_halign = text.align_left, text_valign = text.align_top, bgcolor = color.navy)
+    table.cell(table_id = infoDataTable, column = 0, row = pnlOrder,        text = "Long PnL: $" + str.tostring(realizedPnL, "#.##"),        height = 0, text_color = color.white, text_halign = text.align_left, text_valign = text.align_top, bgcolor = realizedPnL >= 0 ? color.green : color.red)
+
+    // SHORT Position display (full copy with short variables and rows)
+    table.cell(table_id = infoDataTable, column = 0, row = liqPriceShortOrder,  text = "Liq. Price: $" + str.tostring(liqPriceShort, "#.##"),      height = 0, text_color = color.white, text_halign = text.align_left, text_valign = text.align_top, bgcolor = color.orange)
+    //table.cell(table_id = infoDataTable, column = 0, row = 10, text = 'Indicator Directions', height = 0, text_color = color.white, text_halign = text.align_left, text_valign = text.align_top, bgcolor = color.purple)
+    table.cell(table_id = infoDataTable, column = 0, row = execPriceShortOrder,  text = "Short: $" + str.tostring(executionPriceShort, "#.##"),  height = 0, text_color = color.white, text_halign = text.align_left, text_valign = text.align_top, bgcolor = color.navy)
+    table.cell(table_id = infoDataTable, column = 0, row = pnlShortOrder,        text = "Short PnL: $" + str.tostring(realizedPnLShort, "#.##"),        height = 0, text_color = color.white, text_halign = text.align_left, text_valign = text.align_top, bgcolor = realizedPnLShort >= 0 ? color.green : color.red)
+    table.cell(table_id     = infoDataTable, column = 0, row = totalPnlRow, text = "TOTAL PnL: $" + str.tostring(totalRealizedPnL, "#.##"), height = 0,text_color = color.white, text_halign  = text.align_left, text_valign  = text.align_top, bgcolor = totalRealizedPnL >= 0 ? color.teal : color.maroon)
