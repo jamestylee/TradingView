@@ -57,7 +57,7 @@ The file `Stochastic & RSI Combo with Scaled MACD and PNL Tracker.txt` is the fi
     *   **Info Panel:** A separate small table shows real-time ATR, ADX, and RSI values.
     *   **Master Toggle:** A single checkbox in the settings allows you to **turn all tables on or off** for a completely clean view of the oscillators.
 
-![Companion Oscillator with PNL Tracker](./images/combo_oscillator_pnl.png)
+![Companion Oscillator with PNL Tracker](./images/BTCUSDT_2025-06-13_10-44-10_b93c4.png)
 
 ---
 
