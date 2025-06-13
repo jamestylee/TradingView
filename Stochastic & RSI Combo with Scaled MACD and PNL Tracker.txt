@@ -1,5 +1,5 @@
 //@version=6
-indicator(title = 'Stochastic & RSI Combo with Scaled MACD and PNL Tracker by -Tylee-', shorttitle = 'Stoch/RSI/MACD + PNL', format = format.price, precision = 2)
+indicator(title = 'Stochastic & RSI Combo with Scaled MACD and PNL Tracker', shorttitle = 'Stoch/RSI/MACD + PNL', format = format.price, precision = 2)
 
 // ===================================================================
 // START: MINI PNL TRACKER
@@ -17,7 +17,6 @@ type Order
 
 // 2. CREATE USER INPUTS FOR MULTIPLE ORDERS
 g_pnl = "Mini PNL Tracker"
-// NEW: Master toggle for all tables
 showTables = input.bool(true, "Show Info & PNL Tables", group = g_pnl)
 
 // --- Order 1 ---
@@ -51,7 +50,6 @@ o3_size = input.float(20, "Size", group=g3, inline="11")
 o3_liq = input.float(175, "Liq. Price", group=g3, inline="12")
 
 // 3. FETCH PRICES AND INITIALIZE DATA ARRAYS
-// NEW: Price requests are now conditional for performance
 float pnl_price1 = showTables ? request.security(o1_symbol, timeframe.period, close) : na
 float pnl_price2 = showTables ? request.security(o2_symbol, timeframe.period, close) : na
 float pnl_price3 = showTables ? request.security(o3_symbol, timeframe.period, close) : na
@@ -147,7 +145,6 @@ atr1 = ta.atr(14)
 [_, _, adx1] = ta.dmi(17, 4)
 
 // ————— TABLES DRAWING —————
-// NEW: All table logic is now wrapped in the master toggle condition
 if showTables and barstate.islast
     // --- TABLE 1: Original ATR/ADX/RSI Info Table (Moved to the left) ---
     var infoTable = table.new(position = position.bottom_left, columns = 1, rows = 3, bgcolor = color.gray, border_width = 1)
@@ -211,8 +208,9 @@ if showTables and barstate.islast
                 
                 rowIndex += 1
 
-        // TOTAL PNL ROW
+        // TOTAL PNL ROW - ADJUSTED FOR CORRECT ALIGNMENT
         color totalPnlColor = totalPnl >= 0 ? color.new(color.teal, 30) : color.new(color.maroon, 30)
         table.cell(pnlTable, 0, rowIndex, "TOTAL", text_size=size.small, text_color=color.white)
-        table.merge_cells(pnlTable, 0, rowIndex, 4, rowIndex)
-        table.cell(pnlTable, 5, rowIndex, str.tostring(totalPnl, "0.00"), bgcolor=totalPnlColor, text_size=size.small, text_color=color.white)
+        table.merge_cells(pnlTable, 0, rowIndex, 3, rowIndex) // Merge first 4 columns for "TOTAL"
+        table.cell(pnlTable, 4, rowIndex, str.tostring(totalPnl, "0.00"), bgcolor=totalPnlColor, text_size=size.small, text_color=color.white) // Place PNL value in 5th column
+        table.cell(pnlTable, 5, rowIndex, "", text_color=color.white, text_size=size.small) // Leave last column blank
