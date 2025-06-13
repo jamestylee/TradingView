@@ -49,12 +49,45 @@ o3_entry = input.float(150, "Entry Price", group=g3, inline="11")
 o3_size = input.float(20, "Size", group=g3, inline="11")
 o3_liq = input.float(175, "Liq. Price", group=g3, inline="12")
 
+// --- Order 4 ---
+g4 = "Order 4 Settings"
+o4_active = input.bool(false, "▶️ Active", group=g4, inline="13")
+o4_label = input.string("Hedge", "Label", group=g4, inline="13")
+o4_symbol = input.symbol("BINANCE:BTCUSDT", "Symbol", group=g4)
+o4_direction = input.string("Short", "Direction", options=["Long", "Short"], group=g4, inline="14")
+o4_entry = input.float(70000, "Entry Price", group=g4, inline="15")
+o4_size = input.float(0.05, "Size", group=g4, inline="15")
+o4_liq = input.float(75000, "Liq. Price", group=g4, inline="16")
+
+// --- Order 5 ---
+g5 = "Order 5 Settings"
+o5_active = input.bool(false, "▶️ Active", group=g5, inline="17")
+o5_label = input.string("Alt", "Label", group=g5, inline="17")
+o5_symbol = input.symbol("BINANCE:XRPUSDT", "Symbol", group=g5)
+o5_direction = input.string("Long", "Direction", options=["Long", "Short"], group=g5, inline="18")
+o5_entry = input.float(0.50, "Entry Price", group=g5, inline="19")
+o5_size = input.float(5000, "Size", group=g5, inline="19")
+o5_liq = input.float(0.45, "Liq. Price", group=g5, inline="20")
+
+// --- Order 6 ---
+g6 = "Order 6 Settings"
+o6_active = input.bool(false, "▶️ Active", group=g6, inline="21")
+o6_label = input.string("Scalp", "Label", group=g6, inline="21")
+o6_symbol = input.symbol("BINANCE:ETHUSDT", "Symbol", group=g6)
+o6_direction = input.string("Short", "Direction", options=["Long", "Short"], group=g6, inline="22")
+o6_entry = input.float(3200, "Entry Price", group=g6, inline="23")
+o6_size = input.float(1, "Size", group=g6, inline="23")
+o6_liq = input.float(3400, "Liq. Price", group=g6, inline="24")
+
 // 3. FETCH PRICES AND INITIALIZE DATA ARRAYS
 float pnl_price1 = showTables ? request.security(o1_symbol, timeframe.period, close) : na
 float pnl_price2 = showTables ? request.security(o2_symbol, timeframe.period, close) : na
 float pnl_price3 = showTables ? request.security(o3_symbol, timeframe.period, close) : na
+float pnl_price4 = showTables ? request.security(o4_symbol, timeframe.period, close) : na
+float pnl_price5 = showTables ? request.security(o5_symbol, timeframe.period, close) : na
+float pnl_price6 = showTables ? request.security(o6_symbol, timeframe.period, close) : na
 
-price_array = array.from(pnl_price1, pnl_price2, pnl_price3)
+price_array = array.from(pnl_price1, pnl_price2, pnl_price3, pnl_price4, pnl_price5, pnl_price6)
 
 var orders = array.new<Order>()
 
@@ -62,6 +95,9 @@ if (barstate.isfirst)
     array.push(orders, Order.new(o1_active, o1_label, o1_symbol, o1_direction, o1_entry, o1_size, o1_liq))
     array.push(orders, Order.new(o2_active, o2_label, o2_symbol, o2_direction, o2_entry, o2_size, o2_liq))
     array.push(orders, Order.new(o3_active, o3_label, o3_symbol, o3_direction, o3_entry, o3_size, o3_liq))
+    array.push(orders, Order.new(o4_active, o4_label, o4_symbol, o4_direction, o4_entry, o4_size, o4_liq))
+    array.push(orders, Order.new(o5_active, o5_label, o5_symbol, o5_direction, o5_entry, o5_size, o5_liq))
+    array.push(orders, Order.new(o6_active, o6_label, o6_symbol, o6_direction, o6_entry, o6_size, o6_liq))
 
 // ===================================================================
 // END: MINI PNL TRACKER
@@ -208,9 +244,9 @@ if showTables and barstate.islast
                 
                 rowIndex += 1
 
-        // TOTAL PNL ROW - ADJUSTED FOR CORRECT ALIGNMENT
+        // TOTAL PNL ROW
         color totalPnlColor = totalPnl >= 0 ? color.new(color.teal, 30) : color.new(color.maroon, 30)
         table.cell(pnlTable, 0, rowIndex, "TOTAL", text_size=size.small, text_color=color.white)
-        table.merge_cells(pnlTable, 0, rowIndex, 3, rowIndex) // Merge first 4 columns for "TOTAL"
-        table.cell(pnlTable, 4, rowIndex, str.tostring(totalPnl, "0.00"), bgcolor=totalPnlColor, text_size=size.small, text_color=color.white) // Place PNL value in 5th column
-        table.cell(pnlTable, 5, rowIndex, "", text_color=color.white, text_size=size.small) // Leave last column blank
+        table.merge_cells(pnlTable, 0, rowIndex, 3, rowIndex)
+        table.cell(pnlTable, 4, rowIndex, str.tostring(totalPnl, "0.00"), bgcolor=totalPnlColor, text_size=size.small, text_color=color.white)
+        table.cell(pnlTable, 5, rowIndex, "", text_color=color.white, text_size=size.small)
