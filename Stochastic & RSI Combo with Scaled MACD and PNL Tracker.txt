@@ -1,0 +1,218 @@
+//@version=6
+indicator(title = 'Stochastic & RSI Combo with Scaled MACD and PNL Tracker by -Tylee-', shorttitle = 'Stoch/RSI/MACD + PNL', format = format.price, precision = 2)
+
+// ===================================================================
+// START: MINI PNL TRACKER
+// ===================================================================
+
+// 1. DEFINE THE DATA STRUCTURE FOR A SINGLE ORDER
+type Order
+    bool active
+    string label
+    string symbol
+    string direction // "Long" or "Short"
+    float entryPrice
+    float size
+    float liqPrice   // To hold the liquidation price
+
+// 2. CREATE USER INPUTS FOR MULTIPLE ORDERS
+g_pnl = "Mini PNL Tracker"
+// NEW: Master toggle for all tables
+showTables = input.bool(true, "Show Info & PNL Tables", group = g_pnl)
+
+// --- Order 1 ---
+g1 = "Order 1 Settings"
+o1_active = input.bool(false, "▶️ Active", group=g1, inline="1")
+o1_label = input.string("BTC", "Label", group=g1, inline="1")
+o1_symbol = input.symbol("BINANCE:BTCUSDT", "Symbol", group=g1)
+o1_direction = input.string("Long", "Direction", options=["Long", "Short"], group=g1, inline="2")
+o1_entry = input.float(60000, "Entry Price", group=g1, inline="3")
+o1_size = input.float(0.1, "Size", group=g1, inline="3")
+o1_liq = input.float(55000, "Liq. Price", group=g1, inline="4")
+
+// --- Order 2 ---
+g2 = "Order 2 Settings"
+o2_active = input.bool(false, "▶️ Active", group=g2, inline="5")
+o2_label = input.string("ETH", "Label", group=g2, inline="5")
+o2_symbol = input.symbol("BINANCE:ETHUSDT", "Symbol", group=g2)
+o2_direction = input.string("Long", "Direction", options=["Long", "Short"], group=g2, inline="6")
+o2_entry = input.float(3000, "Entry Price", group=g2, inline="7")
+o2_size = input.float(2, "Size", group=g2, inline="7")
+o2_liq = input.float(2700, "Liq. Price", group=g2, inline="8")
+
+// --- Order 3 ---
+g3 = "Order 3 Settings"
+o3_active = input.bool(false, "▶️ Active", group=g3, inline="9")
+o3_label = input.string("SOL", "Label", group=g3, inline="9")
+o3_symbol = input.symbol("BINANCE:SOLUSDT", "Symbol", group=g3)
+o3_direction = input.string("Short", "Direction", options=["Long", "Short"], group=g3, inline="10")
+o3_entry = input.float(150, "Entry Price", group=g3, inline="11")
+o3_size = input.float(20, "Size", group=g3, inline="11")
+o3_liq = input.float(175, "Liq. Price", group=g3, inline="12")
+
+// 3. FETCH PRICES AND INITIALIZE DATA ARRAYS
+// NEW: Price requests are now conditional for performance
+float pnl_price1 = showTables ? request.security(o1_symbol, timeframe.period, close) : na
+float pnl_price2 = showTables ? request.security(o2_symbol, timeframe.period, close) : na
+float pnl_price3 = showTables ? request.security(o3_symbol, timeframe.period, close) : na
+
+price_array = array.from(pnl_price1, pnl_price2, pnl_price3)
+
+var orders = array.new<Order>()
+
+if (barstate.isfirst)
+    array.push(orders, Order.new(o1_active, o1_label, o1_symbol, o1_direction, o1_entry, o1_size, o1_liq))
+    array.push(orders, Order.new(o2_active, o2_label, o2_symbol, o2_direction, o2_entry, o2_size, o2_liq))
+    array.push(orders, Order.new(o3_active, o3_label, o3_symbol, o3_direction, o3_entry, o3_size, o3_liq))
+
+// ===================================================================
+// END: MINI PNL TRACKER
+// ===================================================================
+
+// ——— Stochastic RSI Inputs ———
+smoothK = input.int(3, 'Smooth K', minval = 1)
+smoothD = input.int(3, 'Smooth D', minval = 1)
+lengthRSI = input.int(14, 'RSI Length', minval = 1)
+lengthRSI2 = input.int(50, 'Secondary RSI Length', minval = 1)
+lengthEMA = input.int(14, 'EMA Length', minval = 1)
+lengthStoch = input.int(14, 'Stochastic Length', minval = 1)
+src = input(close, title = 'RSI Source')
+
+// ——— Stochastic RSI Calculation ———
+rsi_stoch = ta.rsi(src, lengthStoch)
+rsi1 = ta.rsi(src, lengthRSI)
+rsi2 = ta.rsi(src, lengthRSI2)
+k = ta.sma(ta.stoch(rsi_stoch, rsi_stoch, rsi_stoch, lengthStoch), smoothK)
+d = ta.sma(k, smoothD)
+plot(k, 'Stoch K', color = color.new(#0537be, 0))
+plot(d, 'Stoch D', color = color.new(#ff6f00, 0))
+
+// ——— RSI Bands and Colors ———
+max_level = input.int(title = 'Upper level', defval = 70, minval = 0, maxval = 100)
+min_level = input.int(title = 'Lower level', defval = 30, minval = 0, maxval = 100)
+h0 = hline(max_level, 'Upper Band', color = #787B86, editable = false)
+h1 = hline(min_level, 'Lower Band', color = #787B86, editable = false)
+h2 = hline(50, 'Middle Band', color = #787B86)
+fill(h0, h1, color = color.rgb(33, 150, 243, 90), title = 'Background')
+
+// ——— RSI Calculations ———
+up1 = ta.rma(math.max(ta.change(src), 0), lengthRSI)
+down1 = ta.rma(-math.min(ta.change(src), 0), lengthRSI)
+_rsi1 = down1 == 0 ? 100 : up1 == 0 ? 0 : 100 - 100 / (1 + up1 / down1)
+
+up2 = ta.rma(math.max(ta.change(src), 0), lengthRSI2)
+down2 = ta.rma(-math.min(ta.change(src), 0), lengthRSI2)
+_rsi2 = down2 == 0 ? 100 : up2 == 0 ? 0 : 100 - 100 / (1 + up2 / down2)
+
+// EMA on RSI
+ema = ta.ema(_rsi1, lengthEMA)
+plot(ema, 'RSI-based EMA', color = color.new(color.yellow, 0))
+
+// Dynamic Colors for RSI Plots
+col_rsi = _rsi1 >= 50 ? color.rgb(0, 170, 88) : color.rgb(212, 2, 2)
+plot(_rsi1, 'RSI', color = color.new(col_rsi, 0), linewidth = 3)
+
+// ——— MACD Calculation ———
+fastLength = input.int(12, minval = 1)
+slowLength = input.int(26, minval = 1)
+signalLength = input.int(9, minval = 1)
+fastMA = ta.ema(src, fastLength)
+slowMA = ta.ema(src, slowLength)
+macd = fastMA - slowMA
+signal = ta.sma(macd, signalLength)
+macdHist = macd - signal
+
+// Scaling Factor to fit histogram within ±100
+max_hist_value = 100
+hist_scale_factor = max_hist_value / math.max(math.abs(ta.highest(macdHist, 100)), math.abs(ta.lowest(macdHist, 100)))
+scaledHist = macdHist * hist_scale_factor
+
+// Hollow vs Solid Histogram Bars based on Momentum
+histIncreasing = scaledHist > scaledHist[1] // True if current histogram is higher than the previous
+histColor = scaledHist > 0 ? histIncreasing ? color.new(color.green, 50) : color.new(color.green, 0) : histIncreasing ? color.new(color.red, 50) : color.new(color.red, 0)
+
+// Plot the scaled histogram with 50% opacity for increasing and solid for decreasing momentum
+plot(scaledHist, title = 'Scaled MACD Histogram', color = histColor, style = plot.style_histogram, linewidth = 3)
+
+// Center Line at 0 for alignment of MACD histogram
+hline(0, title = 'MACD Center Line', color = color.gray, linestyle = hline.style_solid, linewidth = 2)
+
+// ————— Truncate decimals
+f_truncate(number, decimals) =>
+    factor = math.pow(10, decimals)
+    int(number * factor) / factor
+
+// ————— Get ATR and ADX
+atr1 = ta.atr(14)
+[_, _, adx1] = ta.dmi(17, 4)
+
+// ————— TABLES DRAWING —————
+// NEW: All table logic is now wrapped in the master toggle condition
+if showTables and barstate.islast
+    // --- TABLE 1: Original ATR/ADX/RSI Info Table (Moved to the left) ---
+    var infoTable = table.new(position = position.bottom_left, columns = 1, rows = 3, bgcolor = color.gray, border_width = 1)
+    table.cell(table_id = infoTable, column = 0, row = 0, text_color = color.white, text_size = size.small, text = 'ATR ' + str.tostring(f_truncate(atr1, 4)))
+    table.cell(table_id = infoTable, column = 0, row = 1, text_color = color.white, text_size = size.small, text = 'ADX ' + str.tostring(f_truncate(adx1, 2)))
+    table.cell(table_id = infoTable, column = 0, row = 2, text_color = color.white, text_size = size.small, text = 'RSI ' + str.tostring(f_truncate(_rsi1, 2)))
+
+    // --- TABLE 2: New Mini PNL Tracker (Bottom Right) ---
+    int activeOrdersCount = 0
+    for i = 0 to array.size(orders) - 1
+        Order tradeToCheck = array.get(orders, i)
+        if tradeToCheck.active
+            activeOrdersCount += 1
+
+    if activeOrdersCount > 0
+        int totalRows = 1 + activeOrdersCount + 1
+        var pnlTable = table.new(position.bottom_right, columns=6, rows=totalRows, border_width=1, bgcolor=color.gray)
+
+        // TABLE HEADER
+        table.cell(pnlTable, 0, 0, "Label", bgcolor=color.new(color.navy, 20), text_color=color.white, text_size=size.small)
+        table.cell(pnlTable, 1, 0, "Dir", bgcolor=color.new(color.navy, 20), text_color=color.white, text_size=size.small)
+        table.cell(pnlTable, 2, 0, "Entry", bgcolor=color.new(color.navy, 20), text_color=color.white, text_size=size.small)
+        table.cell(pnlTable, 3, 0, "Current", bgcolor=color.new(color.navy, 20), text_color=color.white, text_size=size.small)
+        table.cell(pnlTable, 4, 0, "PNL ($)", bgcolor=color.new(color.navy, 20), text_color=color.white, text_size=size.small)
+        table.cell(pnlTable, 5, 0, "Liq %", bgcolor=color.new(color.purple, 20), text_color=color.white, text_size=size.small)
+
+        // LOOP THROUGH ORDERS AND ADD ROWS
+        float totalPnl = 0.0
+        int rowIndex = 1
+
+        for i = 0 to array.size(orders) - 1
+            Order trade = array.get(orders, i)
+            
+            if (trade.active)
+                float currentPrice = array.get(price_array, i)
+                
+                float pnl = trade.direction == "Long" ? (currentPrice - trade.entryPrice) * trade.size : (trade.entryPrice - currentPrice) * trade.size
+                totalPnl += pnl
+                color pnlColor = pnl >= 0 ? color.new(color.green, 50) : color.new(color.red, 50)
+                
+                float distPercent = 0.0
+                string distText = "N/A"
+                if trade.liqPrice > 0 and currentPrice > 0
+                    distPercent := trade.direction == "Long" ? (currentPrice - trade.liqPrice) / currentPrice * 100 : (trade.liqPrice - currentPrice) / currentPrice * 100
+                    distText := str.tostring(distPercent, "0.0") + "%"
+
+                color liqColor = color.new(color.gray, 0) 
+                if distPercent < 10 and distPercent > 0
+                    liqColor := color.new(color.yellow, 40)
+                if distPercent <= 5 and distPercent > 0
+                    liqColor := color.new(color.red, 40)
+                if distPercent <= 0
+                    liqColor := color.new(#880808, 0)
+
+                table.cell(pnlTable, 0, rowIndex, trade.label, text_color=color.white, text_size=size.small)
+                table.cell(pnlTable, 1, rowIndex, trade.direction, text_color=color.white, text_size=size.small)
+                table.cell(pnlTable, 2, rowIndex, str.tostring(trade.entryPrice, format.mintick), text_color=color.white, text_size=size.small)
+                table.cell(pnlTable, 3, rowIndex, str.tostring(currentPrice, format.mintick), text_color=color.white, text_size=size.small)
+                table.cell(pnlTable, 4, rowIndex, str.tostring(pnl, "0.00"), bgcolor=pnlColor, text_color=color.white, text_size=size.small) 
+                table.cell(pnlTable, 5, rowIndex, distText, bgcolor=liqColor, text_color=color.white, text_size=size.small)
+                
+                rowIndex += 1
+
+        // TOTAL PNL ROW
+        color totalPnlColor = totalPnl >= 0 ? color.new(color.teal, 30) : color.new(color.maroon, 30)
+        table.cell(pnlTable, 0, rowIndex, "TOTAL", text_size=size.small, text_color=color.white)
+        table.merge_cells(pnlTable, 0, rowIndex, 4, rowIndex)
+        table.cell(pnlTable, 5, rowIndex, str.tostring(totalPnl, "0.00"), bgcolor=totalPnlColor, text_size=size.small, text_color=color.white)
