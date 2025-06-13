@@ -225,7 +225,11 @@ if showTables and barstate.islast
                 string distText = "N/A"
                 if trade.liqPrice > 0 and currentPrice > 0
                     distPercent := trade.direction == "Long" ? (currentPrice - trade.liqPrice) / currentPrice * 100 : (trade.liqPrice - currentPrice) / currentPrice * 100
-                    distText := str.tostring(distPercent, "0.0") + "%"
+                    // NEW "REKT" LOGIC
+                    if distPercent <= 0
+                        distText := "REKT"
+                    else
+                        distText := str.tostring(distPercent, "0.0") + "%"
 
                 color liqColor = color.new(color.gray, 0) 
                 if distPercent < 10 and distPercent > 0
