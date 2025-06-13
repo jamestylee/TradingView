@@ -1,72 +1,73 @@
-# MEGA Multi-Indicator & PNL Tracker Suite for TradingView
+# MEGA Indicator Suite for TradingView by -Tylee-
 
-This repository contains two powerful, all-in-one Pine Script indicators for TradingView, authored by `-Tylee-`. These scripts are designed to provide a comprehensive trading dashboard directly on your chart, combining multiple popular technical analysis tools with a unique, manual multi-position PNL tracker.
+This repository contains a powerful, all-in-one suite of Pine Script indicators for TradingView, authored by **-Tylee-**. These scripts are designed to work together to provide a complete analysis and trade management dashboard.
 
-## Core Features (Common to Both Scripts)
+The suite consists of two parts:
+1.  **A Main Chart Overlay:** A comprehensive indicator that runs on your main price chart, featuring a unique PNL tracker, multiple MAs, Bollinger Bands, Ichimoku Clouds, and Auto Fibonacci levels. (Two versions are provided).
+2.  **A Companion Oscillator:** A feature-rich momentum indicator that runs in the panel below your main chart, combining Stochastic, RSI, and a uniquely scaled MACD histogram.
 
-Both indicators are packed with the same set of powerful analysis tools:
+---
 
-*   **📈 On-Chart Visual Indicators:**
-    *   **Bollinger Bands (BB):** Customizable standard deviation bands with a choice of MA type (SMA, EMA, WMA, etc.).
-    *   **Ichimoku Cloud:** Provides key support/resistance levels and trend direction.
-    *   **Triple Moving Averages:** Three configurable EMAs (defaults: 50, 100, 200) for trend analysis, complete with visual alerts for Golden Cross and Death Cross events.
-    *   **Auto Fibonacci Retracement:** Automatically draws and updates Fibonacci levels based on the most recent significant price swings (pivots), powered by the ZigZag indicator.
+## Part 1: The Main Chart Overlay & PNL Tracker
 
-*   **📊 Information Tables:**
-    *   **Manual PNL Tracker:** The standout feature. Manually track up to 6 open futures/spot positions across any symbol. The table displays:
-        *   A custom label for each position.
-        *   Trade direction (Long/Short).
-        *   Your entry price.
-        *   The live current price of the asset.
-        *   Real-time **Unrealized PNL** in USD.
-        *   **Percentage distance to your liquidation price**, with color-coding for risk awareness.
-        *   A running **Total PNL** for all active positions.
-    *   **Indicator Directions Dashboard:** A compact table that shows the current sentiment (Bullish, Bearish, or Neutral) of four key oscillators:
-        *   Vortex Indicator
-        *   Momentum (MOM)
-        *   Directional Movement Index (DMI)
-        *   Money Flow Index (MFI)
+This is the core of the suite, an overlay script that packs multiple tools into one. It comes in two versions, with the primary difference being a display option for the PNL tracker.
 
-## The Scripts: A Side-by-Side Comparison
+### Core Features (Both Versions)
+*   **Manual PNL Tracker:** Manually track up to 6 positions across any symbol, with real-time PNL, distance-to-liquidation, and a total PNL summary.
+*   **On-Chart Visuals:**
+    *   Bollinger Bands (BB)
+    *   Ichimoku Cloud
+    *   Triple Moving Averages (with Golden/Death Cross signals)
+    *   Auto Fibonacci Retracement Levels
+*   **Indicator Directions Table:** A dashboard showing the current sentiment of the Vortex, Momentum, DMI, and MFI indicators.
 
-This repository includes two versions of the indicator. `MEGA Multi-Order v4 - FINAL` is the direct successor to `MEGA Multi Indicator 25`, adding a key usability feature.
+### Version Comparison
 
 | Feature / Aspect                   | `MEGA Multi Indicator 25`                               | `MEGA Multi-Order v4 - FINAL`                            |
 | ---------------------------------- | ------------------------------------------------------- | -------------------------------------------------------- |
 | **Core Indicator Calculations**    | ✅ Identical                                            | ✅ Identical                                             |
-| Bollinger Bands                    | ✅ Yes                                                  | ✅ Yes                                                   |
-| Ichimoku Cloud                     | ✅ Yes                                                  | ✅ Yes                                                   |
-| Triple MAs & Crosses               | ✅ Yes                                                  | ✅ Yes                                                   |
-| Auto Fibonacci                     | ✅ Yes                                                  | ✅ Yes                                                   |
-| Indicator Directions Table         | ✅ Yes                                                  | ✅ Yes                                                   |
 | **PNL Tracker Functionality**      | ✅ Yes                                                  | ✅ Yes                                                   |
 | **PNL Tracker Layout**             |  Horizontal (Fixed)                                     | **✅ Horizontal & Vertical (User's Choice)**             |
 | **Code Base**                      | Original Version                                        | Refined, with logic for switchable table layouts         |
 
-### Key Difference: PNL Table Layout
+### PNL Table Layouts
 
-The **only significant functional difference** between the two scripts is the flexibility of the PNL Tracker's table display.
+1.  **Horizontal Layout** (Available in both versions)
+    *   Displays each position as a row with data spread across columns. Ideal for wider monitors.
 
-1.  **`MEGA Multi Indicator 25 by -Tylee-.txt`**
-    *   This script features a PNL table with a **fixed horizontal layout**. Each position is a row, and the data (Label, PNL, etc.) is spread across columns. This is great for wide screens but can take up significant horizontal space.
+    ![Horizontal PNL Table Layout](./images/horizontal_layout.png)
 
-2.  **`MEGA Multi-Order v4 - FINAL by -Tylee-.txt`**
-    *   This is the upgraded version. It introduces a **"Table Layout"** option in the indicator's settings, allowing the user to choose between:
-        *   **Horizontal:** The classic layout from the previous version.
-        *   **Vertical:** A new, compact layout that stacks the data for each position vertically. This is ideal for traders who want to conserve chart space or use the indicator on smaller screens.
+2.  **Vertical Layout** (Available in `MEGA Multi-Order v4 - FINAL` only)
+    *   A compact layout that stacks data vertically for each position, saving valuable chart space.
+
+    ![Vertical PNL Table Layout](./images/vertical_layout.png)
+
+---
+
+## Part 2: The Companion Oscillator
+
+The file `Stochastic & RSI Combo with Scaled MACD Histogram with Momentum.txt` is designed to be loaded as a separate indicator below your main chart. It provides a deeper look at momentum.
+
+### Key Features
+*   **Combined Oscillators:** Visualizes Stochastic RSI (K and D lines) and a standard RSI line on the same 0-100 scale.
+*   **Scaled MACD Histogram:** A clever MACD histogram that is mathematically scaled to fit within the RSI's 0-100 range. This allows you to gauge MACD momentum without needing a separate axis.
+*   **Momentum-Sensing Bars:** The MACD histogram bars are **solid** when momentum is decreasing and **hollow** when momentum is increasing, giving you an at-a-glance view of momentum shifts.
+*   **Quick Info Panel:** A small, non-intrusive table on the indicator displays the current ATR, ADX, and RSI values for quick reference.
+
+![Companion Oscillator Screenshot](./images/combo_oscillator.png)
+
+---
 
 ## How to Install and Use
 
 1.  **Open TradingView:** Navigate to any chart on [TradingView](https://www.tradingview.com).
 2.  **Open Pine Editor:** Click on the "Pine Editor" tab at the bottom of the screen.
-3.  **Copy and Paste:** Open either `.txt` file from this repository, copy the entire script, and paste it into the Pine Editor, replacing any default text.
-4.  **Add to Chart:** Click the "Add to chart" button.
-5.  **Configure:** Click the gear icon (⚙️) on the indicator's name on your chart to open the settings. Here you can:
-    *   Enable/disable and configure every visual indicator.
-    *   Input your 6 trades into the PNL Tracker section. Be sure to set the `Active` checkbox, `Symbol`, `Entry Price`, `Size`, and `Liq. Price`.
-    *   (For v4) Choose your preferred PNL table layout (Horizontal/Vertical).
+3.  **Add the Indicators:**
+    *   To add the main overlay, copy the code from either `MEGA Multi Indicator 25.txt` or `MEGA Multi-Order v4 - FINAL.txt` and paste it into the Pine Editor. Click **"Add to chart"**.
+    *   To add the companion oscillator, click "Open" -> "New indicator" in the Pine Editor. Copy the code from `Stochastic & RSI Combo....txt`, paste it, and click **"Add to chart"**.
+4.  **Configure:** Click the gear icon (⚙️) on each indicator to configure its settings to your preference. For the overlay, this is where you will input your trades for the PNL tracker.
 
 ## Credits
 
 *   **Original Author:** All credit for the creation, logic, and implementation of these fantastic indicators goes to **-Tylee-**.
-*   **Libraries:** This script utilizes the `ZigZag` library by `TradingView/ZigZag/7` for its Auto Fibonacci functionality.
+*   **Libraries:** The overlay script utilizes the `ZigZag` library by `TradingView/ZigZag/7` for its Auto Fibonacci functionality.
