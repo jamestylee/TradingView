@@ -4,7 +4,7 @@ This repository contains a powerful, all-in-one suite of Pine Script indicators 
 
 The suite consists of two parts:
 1.  **Main Chart Overlays:** A selection of comprehensive indicators that run on your main price chart. They all share the same core visual analysis tools but differ in their position tracking capabilities.
-2.  **A Companion Oscillator:** A feature-rich momentum indicator that runs in the panel below your main chart, combining Stochastic, RSI, and a uniquely scaled MACD histogram.
+2.  **A Companion Oscillator & PNL Tracker:** A feature-rich momentum indicator that runs in the panel below your main chart, combining Stochastic, RSI, a uniquely scaled MACD, and an integrated Mini PNL Tracker.
 
 ---
 
@@ -28,41 +28,36 @@ They differ primarily in how they track and display your PNL.
     *   A streamlined version designed for tracking just **one position at a time**.
     *   It merges the PNL information directly into the **Indicator Directions table**, creating a single, compact info panel.
 
-### Overlay Feature Comparison
-
-| Feature                 | `MEGA Multi-Order v4`      | `MEGA Multi Indicator 25` | `Multi Indicator 2024`         |
-| ----------------------- | -------------------------- | ------------------------- | ------------------------------ |
-| Visual Indicators       | ✅ Full Suite              | ✅ Full Suite             | ✅ Full Suite                  |
-| PNL Tracker Type        | Multi-Order                | Multi-Order               | **Single-Order**               |
-| Max Positions           | 6                          | 6                         | **1**                          |
-| PNL Display             | **Separate Table**         | **Separate Table**        | **Integrated into Info Table** |
-| PNL Table Layout        | **Horizontal & Vertical**  | Horizontal Only           | N/A (Integrated)               |
-| Indicator Directions    | ✅ Yes                     | ✅ Yes                    | ✅ Yes (in shared table)         |
-
 ### Layout Examples
 
 **Multi-Order Horizontal Layout** (`v4` and `25`)
-![Horizontal PNL Table Layout](./images/BTCUSDT_2025-06-12_23-37-31_934c5.png)
+![Horizontal PNL Table Layout](./images/horizontal_layout.png)
 
 **Multi-Order Vertical Layout** (`v4` only)
-![Vertical PNL Table Layout](./images/BTCUSDT_2025-06-12_23-36-53_4703e.png)
+![Vertical PNL Table Layout](./images/vertical_layout.png)
 
 **Single-Order Integrated Layout** (`2024` only)
-![Single-Order Info Table](./images/BTCUSDT_2025-06-12_23-44-59_2ac41.png)
+![Single-Order Info Table](./images/single_order_layout.png)
 
 ---
 
-## Part 2: The Companion Oscillator
+## Part 2: The Companion Oscillator & PNL Tracker
 
-The file `Stochastic & RSI Combo with Scaled MACD....txt` is designed to be loaded as a separate indicator below your main chart. It provides a deeper look at momentum.
+The file `Stochastic & RSI Combo with Scaled MACD and PNL Tracker.txt` is the final, feature-packed version of the companion indicator. It combines deep momentum analysis with essential PNL tracking in a single, efficient pane.
 
 ### Key Features
-*   **Combined Oscillators:** Visualizes Stochastic RSI (K and D lines) and a standard RSI line on the same 0-100 scale.
-*   **Scaled MACD Histogram:** A clever MACD histogram that is mathematically scaled to fit within the RSI's 0-100 range. This allows you to gauge MACD momentum without needing a separate axis.
-*   **Momentum-Sensing Bars:** The MACD histogram bars are **solid** when momentum is decreasing and **hollow** when momentum is increasing, giving you an at-a-glance view of momentum shifts.
-*   **Quick Info Panel:** A small, non-intrusive table on the indicator displays the current ATR, ADX, and RSI values for quick reference.
 
-![Companion Oscillator Screenshot](./images/BTCUSDT_2025-06-12_23-39-04_1b0c8.png)
+*   **Momentum Oscillators:**
+    *   **Stochastic RSI:** Visualizes the %K and %D lines for identifying short-term overbought/oversold levels.
+    *   **Scaled MACD Histogram:** A standard MACD histogram cleverly rescaled to fit within the 0-100 RSI pane, saving screen space.
+    *   **Momentum-Sensing Bars:** The MACD histogram bars are **solid** when momentum is decreasing and **hollow** when momentum is increasing, offering an immediate view of momentum shifts.
+
+*   **Integrated Info & PNL Tables:**
+    *   **Mini PNL Tracker:** Track up to **3 manual positions** in a compact table. It displays your Label, Direction, Entry, Current Price, PNL ($), and Distance to Liquidation %.
+    *   **Info Panel:** A separate small table shows real-time ATR, ADX, and RSI values.
+    *   **Master Toggle:** A single checkbox in the settings allows you to **turn all tables on or off** for a completely clean view of the oscillators.
+
+![Companion Oscillator with PNL Tracker](./images/combo_oscillator_pnl.png)
 
 ---
 
@@ -72,8 +67,8 @@ The file `Stochastic & RSI Combo with Scaled MACD....txt` is designed to be load
 2.  **Open Pine Editor:** Click on the "Pine Editor" tab at the bottom of the screen.
 3.  **Add the Indicators:**
     *   **For the main overlay:** Choose **one** of the three overlay scripts (`MEGA Multi-Order v4`, `MEGA Multi Indicator 25`, or `Multi Indicator 2024`). Copy its code, paste it into the Pine Editor, and click **"Add to chart"**.
-    *   **For the companion oscillator:** In the Pine Editor, click "Open" -> "New indicator". Copy the code from `Stochastic & RSI Combo....txt`, paste it, and click **"Add to chart"**.
-4.  **Configure:** Click the gear icon (⚙️) on each indicator to configure its settings. For the overlays, this is where you will input your trade(s) for the PNL tracker.
+    *   **For the companion oscillator:** In the Pine Editor, click "Open" -> "New indicator". Copy the code from `Stochastic & RSI Combo with Scaled MACD and PNL Tracker.txt`, paste it, and click **"Add to chart"**.
+4.  **Configure:** Click the gear icon (⚙️) on each indicator to configure its settings. For the PNL trackers, this is where you will activate and input your trades.
 
 ## Credits
 
